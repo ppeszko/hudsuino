@@ -45,11 +45,10 @@ void loop() {
     delay(1000);
     client.println("GET /job/arduino/api/json HTTP/1.1");
     client.println();
-    delay(10000);
+    delay(1000);
 
     readData();
 
-    //client.flush();
     Serial.println("buffenring done");
     Serial.flush();
 
@@ -59,29 +58,37 @@ void loop() {
 }
 
 void readData() {
+  int numberOfBytes = client.available();
+  Serial.println(numberOfBytes);
+  if (numberOfBytes <= 0) {
+    return;
+  }
+  
   //boolean started = false;
   int i = 0;
   boolean found = false;
   boolean potentialMatch = false;
-
-  while (client.available() && !found) {
-    char c = client.read();
+  char c;
+  while ((c = client.read()) != -1 && !found) {
+    // without delay ethernet shield was returning garabage from time to time
+    // 3 is the smallest working delay
+    delay(3);
     
     if (potentialMatch && i == strlen(data_start)) {
       // all found
       found = true;
       Serial.println("found");
     } else if (c == data_start[i]) {
-      Serial.print(c);
       potentialMatch = true;
       i++;
     } else {
       //no match
-      Serial.println("");
       i = 0;
       potentialMatch = false;
     } 
   }
+  
+  Serial.println("");
   
   if (found) {
     Serial.println("----------- build green ------------");
