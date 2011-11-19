@@ -10,16 +10,16 @@
 const unsigned int HUDSON_PORT = 8080;
 const unsigned int BAUD_RATE = 9600;
 const unsigned int LED_PIN = 13;
-const unsigned int MATCHING_CHAR_LENGTH = 10;
 
 byte mac[]         = { 
   0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 byte my_ip[]       = { 
   192, 168, 1, 120 };
 byte hudson_server[] = { 
-  192, 168, 1, 6 };
+  192, 168, 1, 7 };
 
-char data_start[MATCHING_CHAR_LENGTH] = "\"color\":\"";
+// +1 for \0 byte
+char data_start[] = "\"color\":\"blue\"";
 char data_end = '"';
 
 Client client(hudson_server, HUDSON_PORT);
@@ -45,11 +45,11 @@ void loop() {
     delay(1000);
     client.println("GET /job/arduino/api/json HTTP/1.1");
     client.println();
-    delay(1000);
+    delay(10000);
 
     readData();
 
-    client.flush();
+    //client.flush();
     Serial.println("buffenring done");
     Serial.flush();
 
@@ -59,33 +59,34 @@ void loop() {
 }
 
 void readData() {
-  boolean started = false;
+  //boolean started = false;
   int i = 0;
+  boolean found = false;
+  boolean potentialMatch = false;
 
-  while (client.available()) {
+  while (client.available() && !found) {
     char c = client.read();
-    if (started) {
-      if (c == 'r') {
-        Serial.println("build broken");
-      } else {
-        Serial.println("build successful");
-      }
+    
+    if (potentialMatch && i == strlen(data_start)) {
+      // all found
+      found = true;
+      Serial.println("found");
+    } else if (c == data_start[i]) {
       Serial.print(c);
-    }
-
-    // scanning for the beginning of build status
-    if (!started && c == data_start[i]) {
+      potentialMatch = true;
       i++;
-      if (i == MATCHING_CHAR_LENGTH - 1) { // trailing \0 not needed
-        started = true;
-        Serial.println("--------------------started");
-      }
-    // scanninig for the end of data
-    } else if (started && c == data_end) {
-      started = false;
     } else {
+      //no match
+      Serial.println("");
       i = 0;
-    }
+      potentialMatch = false;
+    } 
+  }
+  
+  if (found) {
+    Serial.println("----------- build green ------------");
+  } else {
+    Serial.println("----------- build red --------------");
   }
 }
 
