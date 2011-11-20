@@ -16,6 +16,11 @@ Point HUDSON_SERVER and HUDSON_PORT to your hudson/jenkins instance. With POLLIN
 
 After that just upload the sketch to your arduino (arduino shield needed) and have fun!
 
+Picture or it didn't happen
+---------------------------
+
+![Hudsuino discovers red build](https://p.twimg.com/AetpagKCEAEIkYX.jpg)
+
 Author
 ------
 
