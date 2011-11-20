@@ -5,37 +5,41 @@
 #include <Server.h>
 #include <Udp.h>
 
-
-
-const unsigned int HUDSON_PORT = 8080;
 const unsigned int BAUD_RATE = 9600;
-const unsigned int LED_PIN = 13;
 
-byte mac[]         = { 
-  0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
-byte my_ip[]       = { 
-  192, 168, 1, 120 };
-byte hudson_server[] = { 
-  192, 168, 1, 7 };
+const unsigned int GREEN_PIN = 4;
+const unsigned int RED_PIN = 8;
+const unsigned int YELLOW_PIN = 7;
 
-// +1 for \0 byte
-char data_start[] = "\"color\":\"blue\"";
-char data_end = '"';
+byte MAC[] = {  0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
+byte MY_IP[] = { 192, 168, 1, 120 };
+byte HUDSON_SERVER[] = { 192, 168, 1, 7 };
+const unsigned int HUDSON_PORT = 8080;
+const char DATA_BEGINNING[] = "\"color\":\"blue\"";
 
-Client client(hudson_server, HUDSON_PORT);
+const unsigned int POLLING_INTERVAL = 1000;
+
+Client client(HUDSON_SERVER, HUDSON_PORT);
+boolean buildGreen = false;
 
 void setup() {
-  pinMode(LED_PIN, OUTPUT);
+  pinMode(GREEN_PIN, OUTPUT);
+  pinMode(RED_PIN, OUTPUT);
   Serial.begin(BAUD_RATE);
   Serial.println("finishing setup");
 
-  Ethernet.begin(mac, my_ip);
+  Ethernet.begin(MAC, MY_IP);
 }
 
-void loop() {
-  digitalWrite(LED_PIN, LOW);
-  delay(2000);
-  digitalWrite(LED_PIN, HIGH);
+void loop() { 
+  if (buildGreen) {
+    digitalWrite(GREEN_PIN, HIGH);
+    digitalWrite(RED_PIN, LOW);
+  } else {
+    digitalWrite(GREEN_PIN, LOW);
+    digitalWrite(RED_PIN, HIGH);
+  }
+  
   Serial.print("Connecting...");
 
   if (!client.connect()) {
@@ -55,16 +59,17 @@ void loop() {
     Serial.println("Disconnecting.");
     client.stop();
   }
+  delay(POLLING_INTERVAL);
 }
 
 void readData() {
+  digitalWrite(YELLOW_PIN, HIGH);
   int numberOfBytes = client.available();
   Serial.println(numberOfBytes);
   if (numberOfBytes <= 0) {
     return;
   }
   
-  //boolean started = false;
   int i = 0;
   boolean found = false;
   boolean potentialMatch = false;
@@ -74,26 +79,29 @@ void readData() {
     // 3 is the smallest working delay
     delay(3);
     
-    if (potentialMatch && i == strlen(data_start)) {
-      // all found
+    if (potentialMatch && i == strlen(DATA_BEGINNING)) {
+      // whole string found
       found = true;
       Serial.println("found");
-    } else if (c == data_start[i]) {
+    } else if (c == DATA_BEGINNING[i]) {
       potentialMatch = true;
       i++;
     } else {
       //no match
       i = 0;
       potentialMatch = false;
-    } 
+    }
   }
   
   Serial.println("");
   
   if (found) {
+    buildGreen = true;
     Serial.println("----------- build green ------------");
   } else {
+    buildGreen = false;
     Serial.println("----------- build red --------------");
   }
+  digitalWrite(YELLOW_PIN, LOW);
 }
 
